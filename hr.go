@@ -61,8 +61,7 @@ func GetContacts() (chan Contact, error) {
 	}
 	defer db.Close()
 
-	q := `select p_empno, p_active, p_fname, p_mi, p_lname
- , p_jobtitle
+	q := `select p_empno, p_active, p_fname, p_mi, p_lname, p_jobtitle
  , p_hphone, p_busphone, p_cellular, p_empfax, p_pager
  from hrpersnl
  where p_active = 'A' order by lower(p_lname), lower(p_fname)`
@@ -109,7 +108,6 @@ func normalize(s sql.NullString) string {
 	return strings.TrimSpace(s.String)
 }
 
-var phoneRe = regexp.MustCompile(`^\(([0-9]+)\)([0-9]+)-([0-9]+)$`)
 var phoneJunkRe = regexp.MustCompile(`[() -]`)
 
 func phonecanon(s string) string {
