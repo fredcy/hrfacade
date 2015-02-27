@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fredcy/hrfacade"
+	"encoding/json"
 	"net/http"
 	"log"
 )
@@ -23,23 +24,41 @@ func contacthandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	for ce := range cs {
-		if ce.Error != nil {
-			log.Printf("ERROR: ce.Error = %v", ce.Error)
-			http.Error(w, ce.Error.Error(), http.StatusInternalServerError)
-			return
-		} else {
-			c := ce.Contact
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", c.Empno, c.Active, c.Fname, c.Mi, c.Lname,
-				c.Jobtitle)
-		}
+	for c := range cs {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", c.Empno, c.Active, c.Fname, c.Mi, c.Lname,	c.Jobtitle)
+		fmt.Fprintf(w, "\t%s\t%s\t%s", c.Homephone, c.Busphone, c.Cellphone)
+		fmt.Fprintf(w, "\t%s\t%s", c.Faxphone, c.Pagerphone)
+		fmt.Fprintf(w, "\n")
 	}
+}
+
+func contacthandlerj(w http.ResponseWriter, r *http.Request) {
+	cs, err := hrfacade.GetContacts()
+	if err != nil {
+		log.Printf("ERROR: GetContacts: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintln(w, "[")
+	enc := json.NewEncoder(w)
+	first := true
+	for c := range cs {
+		if ! first {
+			fmt.Fprint(w, ",")
+		}
+		if err := enc.Encode(&c); err != nil {
+			log.Println(err)
+		}
+		first = false
+	}
+	fmt.Fprintln(w, "]")
 }
 
 func main() {
 	flag.Parse()
 	http.HandleFunc("/count", counthandler)
 	http.HandleFunc("/contacts", contacthandler)
+	http.HandleFunc("/contactsj", contacthandlerj)
 	log.Printf("Listening at %v", *address)
 	log.Fatal(http.ListenAndServe(*address, nil))
 }

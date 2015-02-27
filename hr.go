@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	_ "github.com/denisenkom/go-mssqldb"
+	"regexp"
+	"strings"
 )
 
 
@@ -41,11 +43,16 @@ type Contact struct {
 	Lname string
 	Active string
 	Jobtitle string
+	Homephone string
+	Busphone string
+	Cellphone string
+	Faxphone string
+	Pagerphone string
 }
 
 // GetContacts reads from the HR database and returns a channel of Contact structs
-func GetContacts() (chan struct { Contact; Error error }, error) {
-	cs := make(chan struct { Contact; Error error })
+func GetContacts() (chan Contact, error) {
+	cs := make(chan Contact)
 	dsn := os.Getenv("HR_DSN")
 	db, err := sql.Open("mssql", dsn)
 	if err != nil {
@@ -56,8 +63,9 @@ func GetContacts() (chan struct { Contact; Error error }, error) {
 
 	q := `select p_empno, p_active, p_fname, p_mi, p_lname
  , p_jobtitle
+ , p_hphone, p_busphone, p_cellular, p_empfax, p_pager
  from hrpersnl
- where p_active = 'A' order by p_lname, p_fname`
+ where p_active = 'A' order by lower(p_lname), lower(p_fname)`
 	rows, err := db.Query(q)
 	if err != nil {
 		log.Printf("ERROR: query failed")
@@ -70,10 +78,41 @@ func GetContacts() (chan struct { Contact; Error error }, error) {
 		
 		for rows.Next() {
 			c := Contact{}
-			err := rows.Scan(&c.Empno, &c.Active, &c.Fname, &c.Mi, &c.Lname,
-				&c.Jobtitle)
-			cs <- struct { Contact; Error error }{ c, err }
+			var empno, active, fname, mi, lname, jobtitle, homephone, busphone, cellphone, faxphone, pagerphone sql.NullString
+			err := rows.Scan(&empno, &active, &fname, &mi, &lname,
+				&jobtitle, &homephone, &busphone, &cellphone, &faxphone, &pagerphone)
+			if err != nil {
+				log.Printf("ERROR: %v", err)
+				continue
+			}
+			c.Empno = normalize(empno)
+			c.Active = normalize(active)
+			c.Fname = normalize(fname)
+			c.Mi = normalize(mi)
+			c.Lname = normalize(lname)
+			c.Jobtitle = normalize(jobtitle)
+			c.Homephone = phonecanon(normalize(homephone))
+			c.Busphone = phonecanon(normalize(busphone))
+			c.Cellphone = phonecanon(normalize(cellphone))
+			c.Faxphone = phonecanon(normalize(faxphone))
+			c.Pagerphone = phonecanon(normalize(pagerphone))
+			cs <- c
 		}
 	}()
 	return cs, nil
+}
+
+func normalize(s sql.NullString) string {
+	if ! s.Valid {
+		return ""
+	}
+	return strings.TrimSpace(s.String)
+}
+
+var phoneRe = regexp.MustCompile(`^\(([0-9]+)\)([0-9]+)-([0-9]+)$`)
+var phoneJunkRe = regexp.MustCompile(`[() -]`)
+
+func phonecanon(s string) string {
+	//return "{{" + phoneRe.ReplaceAllString(s, "$1$2$3") + "}}"
+	return phoneJunkRe.ReplaceAllLiteralString(s, "")
 }
