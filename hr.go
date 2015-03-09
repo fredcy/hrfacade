@@ -3,15 +3,13 @@ package hrfacade
 import (
 	"database/sql"
 	"log"
-	"os"
 	_ "github.com/denisenkom/go-mssqldb"
 	"regexp"
 	"strings"
 )
 
 
-func PersonnelCount() (int, error) {
-	dsn := os.Getenv("HR_DSN")
+func PersonnelCount(dsn string) (int, error) {
 	db, err := sql.Open("mssql", dsn)
 	if err != nil {
 		log.Printf("ERROR: cannot open DSN = %v", dsn)
@@ -51,9 +49,8 @@ type Contact struct {
 }
 
 // GetContacts reads from the HR database and returns a channel of Contact structs
-func GetContacts() (chan Contact, error) {
+func GetContacts(dsn string) (chan Contact, error) {
 	cs := make(chan Contact)
-	dsn := os.Getenv("HR_DSN")
 	db, err := sql.Open("mssql", dsn)
 	if err != nil {
 		log.Printf("ERROR: cannot open DSN = %v", dsn)

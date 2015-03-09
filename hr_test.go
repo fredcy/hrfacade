@@ -3,10 +3,12 @@ package hrfacade
 import (
 	"log"
 	"testing"
+	"os"
 )
 
 func TestSimple(t *testing.T) {
-	c, err := PersonnelCount()
+	dsn := os.Getenv("HR_DSN")
+	c, err := PersonnelCount(dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
