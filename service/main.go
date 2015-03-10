@@ -43,7 +43,7 @@ func acceptValues(accept []string) map[string](map[string]string) {
 	return vs
 }
 
-// contacthandler returns data abouve all contacts
+// contacthandler returns data about all contacts
 func contacthandler(w http.ResponseWriter, r *http.Request, dsn string) {
 	cs, err := hrfacade.GetContacts(dsn)
 	if err != nil {
@@ -63,8 +63,8 @@ func contacthandler(w http.ResponseWriter, r *http.Request, dsn string) {
 
 func contacthandlertext(w http.ResponseWriter, r *http.Request, cs chan hrfacade.Contact) {
 	for c := range cs {
-		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			c.Empno, c.Active, c.Fname, c.Mi, c.Lname,	c.Jobtitle,
+		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			c.Empno, c.Active, c.Fname, c.Mi, c.Lname,	c.Jobtitle, c.Email,
 			c.Homephone, c.Busphone, c.Cellphone, c.Faxphone, c.Pagerphone)
 		if err != nil {
 			log.Println(err)
@@ -115,6 +115,9 @@ func wrapDSN(fn func(http.ResponseWriter, *http.Request, string), dsn string) ht
 
 func main() {
 	dsn := os.Getenv("HR_DSN")
+	if dsn == "" {
+		log.Fatal("HR_DSN is not set in environment")
+	}
 	var address = flag.String("address", ":8080", "Listen and serve at this address")
 	var authcode = flag.String("authcode", "", "Authorization header value expected")
 	flag.Parse()

@@ -46,6 +46,7 @@ type Contact struct {
 	Cellphone string
 	Faxphone string
 	Pagerphone string
+	Email string
 }
 
 // GetContacts reads from the HR database and returns a channel of Contact structs
@@ -59,7 +60,7 @@ func GetContacts(dsn string) (chan Contact, error) {
 	defer db.Close()
 
 	q := `select p_empno, p_active, p_fname, p_mi, p_lname, p_jobtitle
- , p_hphone, p_busphone, p_cellular, p_empfax, p_pager
+ , p_hphone, p_busphone, p_cellular, p_empfax, p_pager, p_empemail
  from hrpersnl
  where p_active = 'A' order by lower(p_lname), lower(p_fname)`
 	rows, err := db.Query(q)
@@ -74,9 +75,9 @@ func GetContacts(dsn string) (chan Contact, error) {
 		
 		for rows.Next() {
 			c := Contact{}
-			var empno, active, fname, mi, lname, jobtitle, homephone, busphone, cellphone, faxphone, pagerphone sql.NullString
+			var empno, active, fname, mi, lname, jobtitle, homephone, busphone, cellphone, faxphone, pagerphone, email sql.NullString
 			err := rows.Scan(&empno, &active, &fname, &mi, &lname,
-				&jobtitle, &homephone, &busphone, &cellphone, &faxphone, &pagerphone)
+				&jobtitle, &homephone, &busphone, &cellphone, &faxphone, &pagerphone, &email)
 			if err != nil {
 				log.Printf("ERROR: %v", err)
 				continue
@@ -92,6 +93,7 @@ func GetContacts(dsn string) (chan Contact, error) {
 			c.Cellphone = phonecanon(normalize(cellphone))
 			c.Faxphone = phonecanon(normalize(faxphone))
 			c.Pagerphone = phonecanon(normalize(pagerphone))
+			c.Email = normalize(email)
 			cs <- c
 		}
 	}()
@@ -107,7 +109,8 @@ func normalize(s sql.NullString) string {
 
 var phoneJunkRe = regexp.MustCompile(`[() -]`)
 
+// phonecanon removes the extraneous (non-numeric) characters from a phone number.
+// E.g., "(800) 555-1212" becomes "8005551212".
 func phonecanon(s string) string {
-	//return "{{" + phoneRe.ReplaceAllString(s, "$1$2$3") + "}}"
 	return phoneJunkRe.ReplaceAllLiteralString(s, "")
 }
