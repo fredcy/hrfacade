@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var version string = "unknown"	// set with -ldflags "-X main.version 1.3"
+var build string = "unknown"
 
 func counthandler(w http.ResponseWriter, r *http.Request, dsn string) {
 	c, _ := hrfacade.PersonnelCount(dsn)
@@ -125,6 +127,6 @@ func main() {
 	http.HandleFunc("/count", wrapAuthenticate(wrapDSN(counthandler, dsn), *authcode))
 	http.HandleFunc("/contacts", wrapAuthenticate(wrapDSN(contacthandler, dsn), *authcode))
 
-	log.Printf("Listening at %v", *address)
+	log.Printf("hrfacade/service, version %s (%s): Listening at %v", version, build, *address)
 	log.Fatal(http.ListenAndServe(*address, nil))
 }
