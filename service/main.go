@@ -4,10 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fredcy/hrfacade"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -93,13 +95,23 @@ func contacthandlerjson(w http.ResponseWriter, r *http.Request, cs chan hrfacade
 	fmt.Fprintln(w, "]")
 }
 
+var basicAuthRe = regexp.MustCompile(`^Basic (.*)$`)
+
 // wrapAuthenticate adds authentication to the HTTP handler.
 func wrapAuthenticate(fn http.HandlerFunc, authcode string) http.HandlerFunc {
 	return func (w http.ResponseWriter, r *http.Request) {
 		if authcode != "" {
 			auth := r.Header.Get(http.CanonicalHeaderKey("Authorization"))
+			if basicAuthRe.MatchString(auth) {
+				auth64 := basicAuthRe.ReplaceAllString(auth, "$1")
+				auth_b, err := base64.StdEncoding.DecodeString(auth64)
+				if err != nil {
+					log.Println(err)
+				}
+				auth = string(auth_b)
+			}
 			if auth != authcode {
-				log.Printf("Invalid authorization value: %v", auth)
+				log.Printf("Invalid authorization value: \"%v\"", auth)
 				http.Error(w, "Not authorized", http.StatusUnauthorized)
 				return
 			}
