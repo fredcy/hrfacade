@@ -1,19 +1,19 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/fredcy/hrfacade"
-	"encoding/base64"
-	"encoding/json"
-	"net/http"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
 )
 
-var version string = "unknown"	// set with -ldflags "-X main.version 1.3"
+var version string = "unknown" // set with -ldflags "-X main.version 1.3"
 var build string = "unknown"
 
 func counthandler(w http.ResponseWriter, r *http.Request, dsn string) {
@@ -67,9 +67,10 @@ func contacthandler(w http.ResponseWriter, r *http.Request, dsn string) {
 
 func contacthandlertext(w http.ResponseWriter, r *http.Request, cs chan hrfacade.Contact) {
 	for c := range cs {
-		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			c.Empno, c.Active, c.Fname, c.Mi, c.Lname,	c.Jobtitle, c.Email,
-			c.Homephone, c.Busphone, c.Cellphone, c.Faxphone, c.Pagerphone)
+		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			c.Empno, c.Active, c.Fname, c.Mi, c.Lname, c.Jobtitle, c.Email,
+			c.Homephone, c.Busphone, c.Cellphone, c.Faxphone, c.Pagerphone,
+			c.Level1, c.Level2, c.Level3, c.Level4, c.Superno)
 		if err != nil {
 			log.Println(err)
 			return
@@ -83,7 +84,7 @@ func contacthandlerjson(w http.ResponseWriter, r *http.Request, cs chan hrfacade
 	enc := json.NewEncoder(w)
 	first := true
 	for c := range cs {
-		if ! first {
+		if !first {
 			fmt.Fprint(w, ",")
 		}
 		if err := enc.Encode(&c); err != nil {
@@ -99,7 +100,7 @@ var basicAuthRe = regexp.MustCompile(`^Basic (.*)$`)
 
 // wrapAuthenticate adds authentication to the HTTP handler.
 func wrapAuthenticate(fn http.HandlerFunc, authcode string) http.HandlerFunc {
-	return func (w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if authcode != "" {
 			auth := r.Header.Get(http.CanonicalHeaderKey("Authorization"))
 			if basicAuthRe.MatchString(auth) {
@@ -122,7 +123,7 @@ func wrapAuthenticate(fn http.HandlerFunc, authcode string) http.HandlerFunc {
 
 // wrapDSN passes a dsn argument to the underlying handler function.
 func wrapDSN(fn func(http.ResponseWriter, *http.Request, string), dsn string) http.HandlerFunc {
-	return func (w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, dsn)
 	}
 }
