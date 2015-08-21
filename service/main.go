@@ -41,10 +41,10 @@ func contacthandler(w http.ResponseWriter, r *http.Request, dsn string) {
 
 func contacthandlertext(w http.ResponseWriter, r *http.Request, cs chan hrfacade.Contact) {
 	for c := range cs {
-		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			c.Empno, c.Active, c.Fname, c.Mi, c.Lname, c.Jobtitle, c.Email,
 			c.Homephone, c.Busphone, c.Cellphone, c.Faxphone, c.Pagerphone,
-			c.Level1, c.Level2, c.Level3, c.Level4, c.Superno)
+			c.Level1, c.Level2, c.Level3, c.Level4, c.Superno, c.Sup2no)
 		if err != nil {
 			log.Println(err)
 			return

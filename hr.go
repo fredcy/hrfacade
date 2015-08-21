@@ -51,6 +51,7 @@ type Contact struct {
 	Level3     string
 	Level4     string
 	Superno    string
+	Sup2no     string
 }
 
 // GetContacts reads from the HR database and returns a channel of Contact structs
@@ -65,11 +66,12 @@ func GetContacts(dsn string, all bool) (chan Contact, error) {
 
 	var whereClause string
 	if !all {
-		whereClause = " where p_active = 'A' "
+		// default to report only active and on-leave
+		whereClause = " where p_active in ('A', 'L') "
 	}
 	q := `select p_empno, p_active, p_fname, p_mi, p_lname, p_jobtitle
  , p_hphone, p_busphone, p_cellular, p_empfax, p_pager, p_empemail
- , p_level1, p_level2, p_level3, p_level4, p_superno
+ , p_level1, p_level2, p_level3, p_level4, p_superno, p_sup2no
  from hrpersnl ` + whereClause +
 		` order by lower(p_lname), lower(p_fname)`
 	rows, err := db.Query(q)
@@ -85,10 +87,10 @@ func GetContacts(dsn string, all bool) (chan Contact, error) {
 		for rows.Next() {
 			c := Contact{}
 			var empno, active, fname, mi, lname, jobtitle, homephone, busphone, cellphone, faxphone, pagerphone, email sql.NullString
-			var level1, level2, level3, level4, superno sql.NullString
+			var level1, level2, level3, level4, superno, sup2no sql.NullString
 			err := rows.Scan(&empno, &active, &fname, &mi, &lname,
 				&jobtitle, &homephone, &busphone, &cellphone, &faxphone, &pagerphone, &email,
-				&level1, &level2, &level3, &level4, &superno)
+				&level1, &level2, &level3, &level4, &superno, &sup2no)
 			if err != nil {
 				log.Printf("ERROR: %v", err)
 				continue
@@ -110,6 +112,7 @@ func GetContacts(dsn string, all bool) (chan Contact, error) {
 			c.Level3 = normalize(level3)
 			c.Level4 = normalize(level4)
 			c.Superno = normalize(superno)
+			c.Sup2no = normalize(sup2no)
 			cs <- c
 		}
 	}()
