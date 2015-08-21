@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strings"
 )
 
 var version string = "unknown" // set with -ldflags "-X main.version 1.3"
@@ -21,35 +20,10 @@ func counthandler(w http.ResponseWriter, r *http.Request, dsn string) {
 	fmt.Fprintf(w, "%d", c)
 }
 
-// acceptValues parses an Accept header value, returning a map from mimetype to
-// a key-value map
-func acceptValues(accept []string) map[string](map[string]string) {
-	vs := make(map[string](map[string]string))
-	for _, line := range accept {
-		parts := strings.Split(line, ",")
-		for _, p := range parts {
-			values := strings.Split(p, ";")
-			mimetype := strings.TrimSpace(values[0])
-			var m map[string]string
-			var ok bool
-			if m, ok = vs[mimetype]; !ok {
-				m = make(map[string]string)
-				vs[mimetype] = m
-			}
-			for _, kv := range values[1:] {
-				kvs := strings.Split(kv, "=")
-				k := kvs[0]
-				v := kvs[1]
-				m[k] = v
-			}
-		}
-	}
-	return vs
-}
-
 // contacthandler returns data about all contacts
 func contacthandler(w http.ResponseWriter, r *http.Request, dsn string) {
-	cs, err := hrfacade.GetContacts(dsn)
+	all := r.FormValue("all") != ""
+	cs, err := hrfacade.GetContacts(dsn, all)
 	if err != nil {
 		log.Printf("ERROR: GetContacts: %v", err)
 		http.Error(w, "Unable to get contact data.", http.StatusInternalServerError)

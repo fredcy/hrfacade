@@ -54,7 +54,7 @@ type Contact struct {
 }
 
 // GetContacts reads from the HR database and returns a channel of Contact structs
-func GetContacts(dsn string) (chan Contact, error) {
+func GetContacts(dsn string, all bool) (chan Contact, error) {
 	cs := make(chan Contact)
 	db, err := sql.Open("mssql", dsn)
 	if err != nil {
@@ -63,14 +63,18 @@ func GetContacts(dsn string) (chan Contact, error) {
 	}
 	defer db.Close()
 
+	var whereClause string
+	if !all {
+		whereClause = " where p_active = 'A' "
+	}
 	q := `select p_empno, p_active, p_fname, p_mi, p_lname, p_jobtitle
  , p_hphone, p_busphone, p_cellular, p_empfax, p_pager, p_empemail
  , p_level1, p_level2, p_level3, p_level4, p_superno
- from hrpersnl
- where p_active = 'A' order by lower(p_lname), lower(p_fname)`
+ from hrpersnl ` + whereClause +
+		` order by lower(p_lname), lower(p_fname)`
 	rows, err := db.Query(q)
 	if err != nil {
-		log.Printf("ERROR: query failed")
+		log.Printf("ERROR: query failed: %v", q)
 		return cs, err
 	}
 
