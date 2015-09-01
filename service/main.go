@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"time"
 )
 
 var version string = "unknown" // set with -ldflags "-X main.version 1.3"
@@ -72,6 +73,16 @@ func contacthandlerjson(w http.ResponseWriter, r *http.Request, cs chan hrfacade
 
 var basicAuthRe = regexp.MustCompile(`^Basic (.*)$`)
 
+func wrapLog(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+		fn(w, r)
+		endTime := time.Now()
+		log.Printf("served %v to %v in %v",
+			r.URL, r.RemoteAddr, endTime.Sub(startTime))
+	}
+}
+
 // wrapAuthenticate adds authentication to the HTTP handler.
 func wrapAuthenticate(fn http.HandlerFunc, authcode string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +123,7 @@ func main() {
 	flag.Parse()
 
 	http.HandleFunc("/count", wrapAuthenticate(wrapDSN(counthandler, dsn), *authcode))
-	http.HandleFunc("/contacts", wrapAuthenticate(wrapDSN(contacthandler, dsn), *authcode))
+	http.HandleFunc("/contacts", wrapLog(wrapAuthenticate(wrapDSN(contacthandler, dsn), *authcode)))
 
 	log.Printf("hrfacade/service, version %s (%s): Listening at %v", version, build, *address)
 	log.Fatal(http.ListenAndServe(*address, nil))
